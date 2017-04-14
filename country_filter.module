@@ -1,0 +1,109 @@
+<?php
+
+/**
+ * Implements hook_boot().
+ */
+function country_filter_boot() {
+  if (variable_get('country_filter_enable')) {
+    $countries = explode(',', variable_get('country_filter_countries', ''));
+    foreach ($countries as $key => $value) $countries[$key] = trim($value);
+
+  }
+  // drupal_page_is_cacheable(variable_get('cache', FALSE));
+}
+
+/**
+ * Implements hook_menu().
+ */
+function country_filter_menu() {
+  $items = array();
+  $items['admin/config/people/country_filter'] = array(
+    'title' => 'Country filter',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('_country_filter_settings'),
+    'access arguments' => array('access country filter settings'),
+    'description' => t('Change settings for countries that have access to this site'),
+  );
+  return $items;
+}
+
+/**
+ * Implements hook_permission().
+ */
+function country_filter_permission() {
+  $permissions = array();
+  $permissions['access country filter settings'] = array(
+    'name' => t('Administer Country filter'),
+    'description' => t('Perform administration tasks for country filter module'),
+  );
+  return $permissions;
+}
+
+/**
+ * Module main settings form
+ */
+function _country_filter_settings($form, &$form_state) {
+
+  $form['country_filter_enable'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Enable country filter functionality'),
+    '#default_value' => variable_get('country_filter_enable', FALSE),
+    '#return_value' => 1,
+  );
+
+  if (variable_get('country_filter_enable', FALSE)) {
+
+    $form['country_filter_service'] = array(
+      '#type' => 'radios',
+      '#title' => t('Choose country detection API'),
+      '#options' => array(),
+      '#default_value' => variable_get('country_filter_service', array()),
+    );
+    foreach (_country_filter_get_available_services() as $key => $details) {
+      $form['country_filter_service']['#options'][$key] = $details['name'];
+      if (!empty($details['description'])) {
+        $form['country_filter_service']['#options'][$key] .= ' - <b>'.$details['description'].'</b>';
+      }
+    }
+
+    $form['country_filter_countries'] = array(
+      '#type' => 'textarea',
+      '#default_value' => variable_get('country_filter_countries', ''),
+      '#title' => t('Countries'),
+      '#description' => t('Fill here country codes, that will be blocked/unblocked. Codes can be found <a href="https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2#Officially_assigned_code_elements" target="_blank">here</a>'),
+      '#attributes' => array(
+        'placeholder' => 'Countries, e.g. IN, AF, AZ',
+      ),
+    );
+
+    $form['country_filter_action'] = array(
+      '#type' => 'radios',
+      '#title' => t('Mode'),
+      '#options' => array(
+        'deny' => t('Deny'),
+        'allow' => t('Allow'),
+      ),
+      '#default_value' => 'deny',
+    );
+
+  }
+
+  return system_settings_form($form);
+}
+
+/**
+ * Get array of available services
+ * @return array
+ */
+function _country_filter_get_available_services() {
+  return array(
+    'geoplugin' => array(
+      'name' => t('api.geoplugin.net'),
+      'description' => t('Other popular geo ip service without limits of usage'),
+    ),
+    '2ipcomua' => array(
+      'name' => t('api.2ip.com.ua'),
+      'description' => t('Ukrainian geo ip service'),
+    ),
+  );
+}

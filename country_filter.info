@@ -1,0 +1,5 @@
+name = Country filter
+description = This module allows you to block visits from specified countries
+core = 7.x
+configure = admin/config/people/country_filter
+version = 0.1-dev
