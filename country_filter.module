@@ -5,11 +5,63 @@
  */
 function country_filter_boot() {
   if (variable_get('country_filter_enable')) {
-    $countries = explode(',', variable_get('country_filter_countries', ''));
-    foreach ($countries as $key => $value) $countries[$key] = trim($value);
+    // init variables
+    $in_list = FALSE;
+    $access_denied = FALSE;
+    $selected_countries = explode(',', variable_get('country_filter_countries', ''));
+    foreach ($selected_countries as $key => $value) {
+      $selected_countries[$key] = trim($value);
+    }
+    $mode = variable_get('country_filter_mode', 'deny');
+    $service = variable_get('country_filter_service', '');
+    $user_ip = ip_address();
+    $current_path = request_uri();
 
+    if ($current_path == '/country-denied') return;
+
+    if (!empty($service)) {
+      $user_country_code = '';
+      if ($service == 'geoplugin') {
+        $api_endpoint = 'http://www.geoplugin.net/json.gp?ip=' . $user_ip;
+        if ($response = @file_get_contents($api_endpoint)) {
+          $response = json_decode($response, TRUE);
+          $user_country_code = $response['geoplugin_countryCode'];
+        }
+      }
+      elseif ($service == '2ipcomua') {
+        $api_endpoint = 'http://api.2ip.ua/geo.json?ip=' . $user_ip;
+        if ($response = @file_get_contents($api_endpoint)) {
+          $response = json_decode($response, TRUE);
+          $user_country_code = $response['country_code'];
+        }
+      }
+      else {
+        return;
+      }
+
+      if (in_array($user_country_code, $selected_countries)) {
+        $in_list = TRUE;
+      }
+
+      if ($mode == 'deny') {
+        if ($in_list) {
+          $access_denied = TRUE;
+        }
+      }
+      elseif ($mode == 'allow') {
+        if (!$in_list) {
+          $access_denied = TRUE;
+        }
+      }
+      else {
+        return;
+      }
+
+      if ($access_denied) {
+        header('Location: ' . '/country-denied');
+      }
+    }
   }
-  // drupal_page_is_cacheable(variable_get('cache', FALSE));
 }
 
 /**
@@ -23,6 +75,13 @@ function country_filter_menu() {
     'page arguments' => array('_country_filter_settings'),
     'access arguments' => array('access country filter settings'),
     'description' => t('Change settings for countries that have access to this site'),
+  );
+  $items['country-denied'] = array(
+    'title callback' => 'variable_get',
+    'title arguments' => array('country_filter_denied_page_title', ''),
+    'page callback' => 'variable_get',
+    'page arguments' => array('country_filter_denied_page_content', ''),
+    'access callback' => TRUE,
   );
   return $items;
 }
@@ -76,7 +135,7 @@ function _country_filter_settings($form, &$form_state) {
       ),
     );
 
-    $form['country_filter_action'] = array(
+    $form['country_filter_mode'] = array(
       '#type' => 'radios',
       '#title' => t('Mode'),
       '#options' => array(
@@ -99,7 +158,7 @@ function _country_filter_get_available_services() {
   return array(
     'geoplugin' => array(
       'name' => t('api.geoplugin.net'),
-      'description' => t('Other popular geo ip service without limits of usage'),
+      'description' => t('Other popular geo ip service without limits of usage. It use MaxMind database'),
     ),
     '2ipcomua' => array(
       'name' => t('api.2ip.com.ua'),
