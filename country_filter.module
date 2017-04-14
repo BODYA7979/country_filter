@@ -145,6 +145,18 @@ function _country_filter_settings($form, &$form_state) {
       '#default_value' => 'deny',
     );
 
+    $form['country_filter_denied_page_title'] = array(
+      '#type' => 'textfield',
+      '#title' => 'Denied country: title',
+      '#default_value' => variable_get('country_filter_denied_page_title', ''),
+    );
+
+    $form['country_filter_denied_page_content'] = array(
+      '#type' => 'textarea',
+      '#title' => 'Denied country: text',
+      '#default_value' => variable_get('country_filter_denied_page_content', ''),
+    );
+
   }
 
   return system_settings_form($form);
