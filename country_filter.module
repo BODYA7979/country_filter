@@ -77,13 +77,19 @@ function country_filter_menu() {
     'description' => t('Change settings for countries that have access to this site'),
   );
   $items['country-denied'] = array(
-    'title callback' => 'variable_get',
-    'title arguments' => array('country_filter_denied_page_title', ''),
-    'page callback' => 'variable_get',
-    'page arguments' => array('country_filter_denied_page_content', ''),
+    'title callback' => '_country_denied_title',
+    'page callback' => '_contry_denied_content',
     'access callback' => TRUE,
   );
   return $items;
+}
+
+function _country_denied_title() {
+  return t(variable_get('country_filter_denied_page', array('title' => ''))['title']);
+}
+
+function _contry_denied_content() {
+  return t(variable_get('country_filter_denied_page', array('content' => ''))['content']);
 }
 
 /**
@@ -145,16 +151,24 @@ function _country_filter_settings($form, &$form_state) {
       '#default_value' => 'deny',
     );
 
-    $form['country_filter_denied_page_title'] = array(
-      '#type' => 'textfield',
-      '#title' => 'Denied country: title',
-      '#default_value' => variable_get('country_filter_denied_page_title', ''),
+    $form['country_filter_denied_page'] = array(
+      '#type' => 'fieldset',
+      '#title' => 'Denied country page configuration',
+      '#collapsible' => TRUE,
+      '#collapsed' => TRUE,
+      '#tree' => TRUE,
     );
 
-    $form['country_filter_denied_page_content'] = array(
+    $form['country_filter_denied_page']['title'] = array(
+      '#type' => 'textfield',
+      '#title' => 'Title',
+      '#default_value' => variable_get('country_filter_denied_page', array('title' => '')['title']),
+    );
+
+    $form['country_filter_denied_page']['content'] = array(
       '#type' => 'textarea',
-      '#title' => 'Denied country: text',
-      '#default_value' => variable_get('country_filter_denied_page_content', ''),
+      '#title' => 'Text',
+      '#default_value' => variable_get('country_filter_denied_page', array('content' => ''))['content'],
     );
 
   }
