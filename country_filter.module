@@ -20,23 +20,30 @@ function country_filter_boot() {
     if ($current_path == '/country-denied') return;
 
     if (!empty($service)) {
-      $user_country_code = '';
-      if ($service == 'geoplugin') {
-        $api_endpoint = 'http://www.geoplugin.net/json.gp?ip=' . $user_ip;
-        if ($response = @file_get_contents($api_endpoint)) {
-          $response = json_decode($response, TRUE);
-          $user_country_code = $response['geoplugin_countryCode'];
+      $cachekey = 'country_filter_'.md5($user_ip);
+      if (!$cached = cache_get($cachekey, 'cache')) {
+        $user_country_code = '';
+        if ($service == 'geoplugin') {
+          $api_endpoint = 'http://www.geoplugin.net/json.gp?ip=' . $user_ip;
+          if ($response = @file_get_contents($api_endpoint)) {
+            $response = json_decode($response, TRUE);
+            $user_country_code = $response['geoplugin_countryCode'];
+          }
         }
-      }
-      elseif ($service == '2ipcomua') {
-        $api_endpoint = 'http://api.2ip.ua/geo.json?ip=' . $user_ip;
-        if ($response = @file_get_contents($api_endpoint)) {
-          $response = json_decode($response, TRUE);
-          $user_country_code = $response['country_code'];
+        elseif ($service == '2ipcomua') {
+          $api_endpoint = 'http://api.2ip.ua/geo.json?ip=' . $user_ip;
+          if ($response = @file_get_contents($api_endpoint)) {
+            $response = json_decode($response, TRUE);
+            $user_country_code = $response['country_code'];
+          }
         }
+        else {
+          return;
+        }
+        cache_set($cachekey, $user_country_code, 'cache');
       }
       else {
-        return;
+        $user_country_code = $cached->data;
       }
 
       if (in_array($user_country_code, $selected_countries)) {
